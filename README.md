@@ -30,13 +30,6 @@ OPENAI_API_KEY=sk-...your key...
 Notes
 - The script attempts to be defensive about response shapes returned by different SDK versions; if you see unexpected output, add `--verbose` to get more logging.
 - Do NOT commit keys to git. Add `.env`/`API_KEY.env` to your `.gitignore`.
-# OpenAI-Python
-
-# Install Python and Python-Denv
-pip install python python-denv
-
-# Install OpenAPI
-pip install openapi
 
 
 
