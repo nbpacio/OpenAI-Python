@@ -16,7 +16,7 @@ if not api_key:
 client = OpenAI(api_key=api_key)
 
 # Ask the user for input
-prompt = input("How Can I Help You Today? ")
+prompt = input("Greetings! How May I Help You Today? ")
 
 # Send the request to the API
 response = client.responses.create(
@@ -27,6 +27,10 @@ response = client.responses.create(
 # Print the model’s reply
 print("\nResponse:")
 print(response.output_text)
+
+
+
+
 
 # Pause so the window stays open
 input("\nPress Enter to exit...")
