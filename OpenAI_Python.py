@@ -1,9 +1,10 @@
+# -*- coding: utf-8 -*-
 from dotenv import load_dotenv
 import os
 from openai import OpenAI
 
 # Load environment variables from your .env file
-load_dotenv(dotenv_path=r"C:\Users\Brian Pacio\source\repos\OpenAI-Python\OpenAI-Python\API_KEY.env")
+load_dotenv(dotenv_path=r"C:\Users\Brian Pacio\source\repos\API_KEY.env")
 
 # Get the API key from the environment
 api_key = os.getenv("OPENAI_API_KEY")
@@ -16,17 +17,20 @@ if not api_key:
 client = OpenAI(api_key=api_key)
 
 # Ask the user for input
-prompt = input("How Can I Help You Today? ")
+prompt = input("How can I assist you today? ")
 
 # Send the request to the API
 response = client.responses.create(
-    model="gpt-4.1-nano",
+    model="gpt-5",
     input=prompt
 )
 
 # Print the model’s reply
 print("\nResponse:")
 print(response.output_text)
+
+
+
 
 # Pause so the window stays open
 input("\nPress Enter to exit...")
