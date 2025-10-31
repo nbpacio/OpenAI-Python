@@ -16,39 +16,21 @@ if not api_key:
 # Initialize the OpenAI client
 client = OpenAI(api_key=api_key)
 
-    try:
-        if args.prompt:
-            prompt = args.prompt
-        else:
-            # Interactive prompt
-            prompt = input("Greetings! How May I Help You Today? ")
-    except (KeyboardInterrupt, EOFError):
-        logging.info("Prompt cancelled by user")
-        return 0
+# Ask the user for input
+prompt = input("How can I assist you today? ")
 
-    if not prompt or not prompt.strip():
-        logging.warning("Empty prompt provided; nothing to send")
-        return 0
+# Send the request to the API
+response = client.responses.create(
+    model="gpt-5",
+    input=prompt
+)
 
-    try:
-        response = client.responses.create(model=args.model, input=prompt)
-    except Exception as e:
-        logging.exception("API request failed")
-        print("Request failed:", e)
-        return 1
-
-    output_text = parse_response(response)
-    print("\nResponse:\n")
-    print(output_text)
-
-    if args.pause:
-        try:
-            input("\nPress Enter to exit...")
-        except (KeyboardInterrupt, EOFError):
-            pass
-
-    return 0
+# Print the model’s reply
+print("\nResponse:")
+print(response.output_text)
 
 
-if __name__ == "__main__":
-    raise SystemExit(main())
+
+
+# Pause so the window stays open
+input("\nPress Enter to exit...")
