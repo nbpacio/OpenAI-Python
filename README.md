@@ -24,7 +24,11 @@ Environment
 - Set `OPENAI_API_KEY` in your environment or in a `.env` file with the line:
 
 ```
+Linux:
 OPENAI_API_KEY=sk-...your key...
+
+Powershell:
+setx OPENAI_API_KEY "sk-...your key..." 
 ```
 
 Notes
