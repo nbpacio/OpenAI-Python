@@ -1,140 +1,113 @@
-# ...existing code...
-<<<<<<< HEAD
-import os
-import argparse
-import logging
-from dotenv import load_dotenv
-from openai import OpenAI
-
-load_dotenv(dotenv_path=r"C:\Users\Brian Pacio\source\repos\API_KEY.env")
-=======
 # -*- coding: utf-8 -*-
+"""Small CLI wrapper around the OpenAI Responses API.
+
+Behavior:
+- Loads API key from `API_KEY.env` next to the repository root (or uses environment vars).
+- Prompts: "What can I help you today?"
+- After printing a response, asks: "Is there anything else I can help you with? (type 'exit' to quit)"
+"""
 import os
-import logging
 import argparse
+import logging
 from dotenv import load_dotenv
 from openai import OpenAI
 
-# Load environment variables from a .env file (keeps API key out of source)
-# Adjust path if your env file lives elsewhere; dotenv will also read OS env vars
-load_dotenv(dotenv_path=r"C:\Users\Brian Pacio\source\repos\API_KEY.env")
+# Try to locate API_KEY.env in the repository root (one level above this script) or fall back to default env loading
+_here = os.path.dirname(os.path.abspath(__file__))
+_candidate = os.path.join(os.path.dirname(_here), "API_KEY.env")
+if os.path.exists(_candidate):
+    load_dotenv(dotenv_path=_candidate)
+else:
+    # allow environment or other locations
+    load_dotenv()
 
-# Get the API key from the environment (do not print or log this)
->>>>>>> mybranch
 api_key = os.getenv("OPENAI_API_KEY")
 if not api_key:
-    raise ValueError("OPENAI_API_KEY not found. Check your API_KEY.env file path and contents.")
+    raise ValueError("OPENAI_API_KEY not found. Put it in API_KEY.env or set the OPENAI_API_KEY environment variable.")
 
-<<<<<<< HEAD
-=======
-# Initialize client (do not expose the key)
->>>>>>> mybranch
+# Initialize client
 client = OpenAI(api_key=api_key)
 logging.basicConfig(level=logging.WARNING)
 
-<<<<<<< HEAD
 
 def parse_response(resp):
-    return getattr(resp, "output_text", None) or str(resp)
+    """Return a readable string from a Responses API response object.
 
+    Handles several possible shapes returned by the Responses API (convenience
+    `output_text`, or structured `output` lists containing dicts/objects).
+    Falls back to str(resp) when no text can be extracted.
+    """
+    # simple convenience property
+    out_text = getattr(resp, "output_text", None)
+    if out_text:
+        return out_text
 
-def send(prompt, model):
-    try:
-        return parse_response(client.responses.create(model=model, input=prompt))
-=======
-logging.basicConfig(level=logging.INFO)
-
-
-def parse_response(response) -> str:
-    """Extract a readable string from a Responses API response object."""
-    # Prefer the convenience property if available
-    text = getattr(response, "output_text", None)
-    if text:
-        return text
-    # Fallback: try to assemble from structured output
     parts = []
-    try:
-        for item in getattr(response, "output", []) or []:
-            # each item may have .content which is a list of dicts
-            for c in item.get("content", []) if isinstance(item, dict) else getattr(item, "content", []):
-                if isinstance(c, dict):
-                    if "text" in c:
-                        parts.append(c["text"])
+
+    # structured `output` (list) handling
+    outputs = getattr(resp, "output", None)
+    if outputs:
+        for item in outputs:
+            # dict-style items
+            if isinstance(item, dict):
+                # item may contain 'content' which is a list of pieces
+                if "content" in item and isinstance(item["content"], list):
+                    for piece in item["content"]:
+                        if isinstance(piece, dict) and "text" in piece:
+                            parts.append(str(piece["text"]))
+                        else:
+                            parts.append(str(getattr(piece, "text", piece)))
+                elif "text" in item:
+                    parts.append(str(item["text"]))
                 else:
-                    # if content entries are objects with 'text' attribute
-                    parts.append(getattr(c, "text", str(c)))
-    except Exception:
-        # Best-effort fallback
-        parts.append(str(response))
-    return "\n".join(p for p in parts if p)
+                    parts.append(str(item))
+            else:
+                # object-style: prefer .text attribute
+                txt = getattr(item, "text", None)
+                if txt:
+                    parts.append(str(txt))
+                else:
+                    # fallback to to_dict if available, else str()
+                    to_dict = getattr(item, "to_dict", None)
+                    if callable(to_dict):
+                        parts.append(str(to_dict()))
+                    else:
+                        parts.append(str(item))
+
+    if parts:
+        # combine and return found pieces
+        return "\n".join(p for p in parts if p is not None)
+
+    # fallback: if object provides to_dict(), use that
+    to_dict = getattr(resp, "to_dict", None)
+    if callable(to_dict):
+        return str(to_dict())
+
+    # final fallback
+    return str(resp)
 
 
 def send_prompt(prompt: str, model: str):
     try:
-        response = client.responses.create(model=model, input=prompt)
->>>>>>> mybranch
-    except Exception as e:
+        resp = client.responses.create(model=model, input=prompt)
+        return parse_response(resp)
+    except Exception:
         logging.exception("API request failed")
-        print("Request failed:", e)
         return None
-<<<<<<< HEAD
-
-
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--model", default="gpt-4o-mini")
-    parser.add_argument("--prompt")
-    args = parser.parse_args()
-
-    try:
-        # initial prompt (either from arg or interactive)
-        prompt = args.prompt or input("What can I help you today? ").strip()
-    except (KeyboardInterrupt, EOFError):
-        print("\nExiting.")
-        return 0
-
-    if not prompt:
-        return 0
-
-    while True:
-        if prompt.lower() == "exit":
-            break
-
-        out = send(prompt, args.model)
-        if out:
-            print("\nResponse:\n")
-            print(out)
-
-=======
-    return parse_response(response)
 
 
 def main():
     parser = argparse.ArgumentParser(description="Simple OpenAI Responses CLI")
-    parser.add_argument("--model", default="gpt-4o-mini", help="Model name to use")
+    parser.add_argument("--model", default="gpt-4o-mini")
     parser.add_argument("--prompt", help="Single-shot prompt (non-interactive)")
     args = parser.parse_args()
 
-    # Single-shot mode if prompt provided
+    # Single-shot
     if args.prompt:
-        output = send_prompt(args.prompt, args.model)
-        if output:
+        out = send_prompt(args.prompt, args.model)
+        if out:
             print("\nResponse:\n")
-            print(output)
-        # Pause once after output
->>>>>>> mybranch
-        try:
-            follow = input("\nIs there anything else I can help you with? (type 'exit' to quit): ").strip()
-        except (KeyboardInterrupt, EOFError):
-<<<<<<< HEAD
-            print("\nExiting.")
-            break
-
-        if not follow or follow.lower() == "exit":
-            break
-        prompt = follow
-=======
-            pass
+            print(out)
         return 0
 
     # Interactive loop
@@ -147,51 +120,33 @@ def main():
                 break
 
             if not prompt:
-                # empty input — ask again
                 continue
-
             if prompt.lower() == "exit":
                 break
 
-            output = send_prompt(prompt, args.model)
-            if output:
+            out = send_prompt(prompt, args.model)
+            if out:
                 print("\nResponse:\n")
-                print(output)
+                print(out)
 
-            # After showing the response, ask the follow-up / pause question
             try:
                 follow = input("\nIs there anything else I can help you with? (type 'exit' to quit): ").strip()
             except (KeyboardInterrupt, EOFError):
                 print("\nExiting.")
                 break
 
-            if not follow:
-                # user pressed Enter — continue to next iteration and ask main prompt again
-                continue
-            if follow.lower() == "exit":
+            if not follow or follow.lower() == "exit":
                 break
-            # If the user typed another question, treat it as the next prompt immediately
+            # treat follow-up as next prompt
             prompt = follow
-            output = send_prompt(prompt, args.model)
-            if output:
-                print("\nResponse:\n")
-                print(output)
-            # then loop continues and will ask the follow-up again
 
     except Exception:
         logging.exception("Unexpected error")
         return 1
->>>>>>> mybranch
 
     return 0
 
 
 if __name__ == "__main__":
     raise SystemExit(main())
-<<<<<<< HEAD
-# ...existing code...
-=======
-# ...existing code...
 
-#END
->>>>>>> mybranch
